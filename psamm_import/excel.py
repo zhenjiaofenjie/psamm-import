@@ -1636,3 +1636,101 @@ class ImportModelSEED(Importer):
             yield ReactionEntry(dict(
                 id=reaction_id, name=name, genes=genes,
                 equation=equation, ec=ec), filemark=filemark)
+
+class Importzhaocai(Importer):
+    """Importer for standard model."""
+
+    name = 'ZHAOCAI'
+    title = ('Use specific excel format to import models.')
+
+    filename = ''
+
+    def help(self):
+        """Print importer help text."""
+        print('Source must contain the model definition in Excel format.\n'
+              'Expected files in source directory:\n'
+              '- {}'.format(self.filename))
+
+    def import_model(self, source):
+        """Import and return model instance."""
+        context = FilePathContext(source)
+        if os.path.isdir(context.filepath):
+            context = FilePathContext(os.path.join(source, self.filename))
+
+        self._context = context
+        self._book = xlrd.open_workbook(context.filepath)
+
+        model = native.NativeModel()
+        model.name = self.title
+        model.biomass_reaction = 'overall'
+        model.extracellular_compartment = 'e'
+        model.compounds.update(self._read_compounds())
+        model.reactions.update(self._read_reactions())
+
+        return model
+
+    def _read_compounds(self):
+        sheet = self._book.sheet_by_name('metabolites')
+        for i in range(1, sheet.nrows):
+            (compound_id, name, formula_neutral, formula, charge, 
+                compartment, kegg, cas) = sheet.row_values(i, end_colx=8)
+
+            if compound_id.strip() == '':
+                continue
+
+            compound_id = re.match(r'^(.*)\[.\]$', compound_id).group(1)
+            name = None if name.strip() == '' else name
+
+            formula_neutral = self._try_parse_formula(
+                compound_id, formula_neutral)
+            formula = self._try_parse_formula(compound_id, formula)
+
+            try:
+                charge = None if charge == '' else int(charge)
+            except ValueError:
+                charge = None
+
+            kegg = None if kegg.strip() == '' else kegg
+            cas = None if cas.strip() == '' else cas
+
+            filemark = FileMark(self._context, i, None)
+            yield CompoundEntry(dict(
+                id=compound_id, name=name,
+                formula=formula,
+                formula_neutral=formula_neutral,
+                charge=charge, kegg=kegg, cas=cas), filemark=filemark)
+
+    def _read_reactions(self):
+        arrows = (
+            ('->', Direction.Forward),
+            ('<==>', Direction.Both)
+        )
+        parser = ReactionParser(arrows=arrows)
+
+        sheet = self._book.sheet_by_name('reactions')
+        for i in range(1, sheet.nrows):
+            (reaction_id, name, equation, genes, subsystem, ec
+                ) = sheet.row_values(i, end_colx=6)
+
+            if reaction_id.strip() == '':
+                continue
+
+            genes = self._try_parse_gene_association(reaction_id, genes)
+            name = None if name.strip() == '' else name
+
+            if equation.strip() != '':
+                equation = self._try_parse_reaction(
+                    reaction_id, equation, parser=parser.parse)
+            else:
+                equation = None
+
+            subsystem = None if subsystem.strip() == '' else subsystem
+            ec = None if ec.strip() == '' else ec
+
+            filemark = FileMark(self._context, i, None)
+            yield ReactionEntry(dict(
+                id=reaction_id, name=name, genes=genes,
+                equation=equation, subsystem=subsystem,
+                ec=ec), filemark=filemark)
+
+
