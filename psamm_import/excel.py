@@ -1678,7 +1678,11 @@ class Importzhaocai(Importer):
             if compound_id.strip() == '':
                 continue
 
-            compound_id = re.match(r'^(.*)\[.\]$', compound_id).group(1)
+            # Skip compartmentalized compounds
+            m = re.match(r'^(.*)\[.\]$', compound_id)
+            if m:
+                compound_id = m.group(1)
+
             name = None if name.strip() == '' else name
 
             formula_neutral = self._try_parse_formula(
