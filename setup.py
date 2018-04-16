@@ -53,7 +53,7 @@ setup(
             'iW3181_789 = psamm_import.excel:ImportiW3181_789',
             'iOS217_672 = psamm_import.excel:ImportiOS217_672',
             'ModelSEED = psamm_import.excel:ImportModelSEED',
-            'ZHAOCAI= psamm_import.excel:Importzhaocai',
+            'Customer= psamm_import.excel:Importcustomer',
         ]
     },
 

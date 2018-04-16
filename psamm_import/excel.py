@@ -1637,10 +1637,10 @@ class ImportModelSEED(Importer):
                 id=reaction_id, name=name, genes=genes,
                 equation=equation, ec=ec), filemark=filemark)
 
-class Importzhaocai(Importer):
+class Importcustomer(Importer):
     """Importer for standard model."""
 
-    name = 'ZHAOCAI'
+    name = 'CUSTOMER'
     title = ('Use specific excel format to import models.')
 
     filename = ''
