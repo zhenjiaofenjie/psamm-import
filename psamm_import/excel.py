@@ -693,7 +693,7 @@ class ImportiJP815(Importer):
                 re.match(r'^(E|I)(C\d+)$', compound_id).groups())
             kegg = compound_id
 
-            m = re.match('^(.*)\[.\]$', name)
+            m = re.match(r'^(.*)\[.\]$', name)
             if m:
                 name = m.group(1)
 
@@ -1637,19 +1637,30 @@ class ImportModelSEED(Importer):
                 id=reaction_id, name=name, genes=genes,
                 equation=equation, ec=ec), filemark=filemark)
 
+
 class Importcustomer(Importer):
     """Importer for standard model."""
 
     name = 'CUSTOMER'
-    title = ('Use specific excel format to import models.')
+    title = 'Model from excel format.'
 
     filename = ''
 
     def help(self):
         """Print importer help text."""
-        print('Source must contain the model definition in Excel format.\n'
-              'Expected files in source directory:\n'
-              '- {}'.format(self.filename))
+        print('Source must contain the model definition in Excel format.\n',
+              'Expected files in source directory:\n',
+              '- {}\n'.format(self.filename),
+              '- Sheet for compounds:\n',
+              '     Sheet name: metabolites\n',
+              '     Headers: compound_id, name, formula_neutral, formula,',
+              'charge, compartment, kegg id, cas id\n',
+              '- Sheet for reactions:\n',
+              '     Sheet name: reactions\n',
+              '     Headers: reaction_id, name, equation, genes,',
+              'subsystem, ec number\n',
+              '     Directions used in equation: "=>", "<=" or "<=>"\n'
+              )
 
     def import_model(self, source):
         """Import and return model instance."""
@@ -1672,8 +1683,10 @@ class Importcustomer(Importer):
     def _read_compounds(self):
         sheet = self._book.sheet_by_name('metabolites')
         for i in range(1, sheet.nrows):
-            (compound_id, name, formula_neutral, formula, charge, 
-                compartment, kegg, cas) = sheet.row_values(i, end_colx=8)
+            (
+                compound_id, name, formula_neutral, formula, charge,
+                compartment, kegg, cas
+            ) = sheet.row_values(i, end_colx=8)
 
             if compound_id.strip() == '':
                 continue
@@ -1705,16 +1718,17 @@ class Importcustomer(Importer):
                 charge=charge, kegg=kegg, cas=cas), filemark=filemark)
 
     def _read_reactions(self):
-        arrows = (
-            ('->', Direction.Forward),
-            ('<==>', Direction.Both)
-        )
-        parser = ReactionParser(arrows=arrows)
+        # arrows = (
+        #     ('=>', Direction.Forward),
+        #     ('<=>', Direction.Both)
+        # )
+        parser = ReactionParser()
 
         sheet = self._book.sheet_by_name('reactions')
         for i in range(1, sheet.nrows):
-            (reaction_id, name, equation, genes, subsystem, ec
-                ) = sheet.row_values(i, end_colx=6)
+            (
+                reaction_id, name, equation, genes, subsystem, ec
+            ) = sheet.row_values(i, end_colx=6)
 
             if reaction_id.strip() == '':
                 continue
@@ -1736,5 +1750,3 @@ class Importcustomer(Importer):
                 id=reaction_id, name=name, genes=genes,
                 equation=equation, subsystem=subsystem,
                 ec=ec), filemark=filemark)
-
-
